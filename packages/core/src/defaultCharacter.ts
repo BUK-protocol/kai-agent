@@ -201,9 +201,5 @@ export const defaultCharacter: Character = {
         "charismatic",
         "reliable",
     ],
-<<<<<<< Updated upstream
     extends: [],
 };
-=======
-};
->>>>>>> Stashed changes

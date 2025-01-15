@@ -45,9 +45,22 @@
         },
         "@elizaos/plugin-quai#build": {
             "outputs": ["dist/**"],
-            "dependsOn": [
-                "@elizaos/plugin-trustdb#build"
-            ]
+            "dependsOn": ["@elizaos/plugin-trustdb#build"]
+        },
+        "@elizaos/plugin-trustdb#build": {
+            "outputs": ["dist/**"]
+        },
+        "@elizaos/plugin-tee#build": {
+            "outputs": ["dist/**"]
+        },
+        "@elizaos/plugin-sgx#build": {
+            "outputs": ["dist/**"]
+        },
+        "@elizaos/plugin-node#build": {
+            "outputs": ["dist/**"]
+        },
+        "@elizaos/plugin-image-generation#build": {
+            "outputs": ["dist/**"]
         },
         "eliza-docs#build": {
             "outputs": ["build/**"]
@@ -55,6 +68,19 @@
         "dev": {
             "persistent": true,
             "cache": false
+        },
+        "test": {
+            "dependsOn": ["build"],
+            "outputs": [],
+            "inputs": ["src/**/*.tsx", "src/**/*.ts", "test/**/*.ts", "test/**/*.tsx"]
+        },
+        "lint": {
+            "outputs": []
+        },
+        "deploy": {
+            "dependsOn": ["build", "test", "lint"],
+            "outputs": []
         }
-    }
+    },
+    "globalDependencies": ["tsconfig.json"]
 }
