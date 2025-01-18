@@ -1,7 +1,7 @@
 {
     "name": "CosmosHelper",
-    "clients": [],
-    "modelProvider": "groq",
+    "clients": ["twitter", "telegram"], 
+    "modelProvider": "grok",
     "settings": {
         "voice": {
             "model": "en_US-male-medium"
