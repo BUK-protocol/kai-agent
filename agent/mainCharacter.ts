@@ -6,7 +6,7 @@ import {webSearchPlugin} from "@elizaos/plugin-web-search"
 export const mainCharacter: Character = {
     name: "Kai",
     username: "Kaitinerary",
-    plugins: [webSearchPlugin, twitterPlugin],
+    plugins: [twitterPlugin],
     clients: [Clients.TWITTER, Clients.TELEGRAM],
     modelProvider: ModelProviderName.GROK,
     imageVisionModelProvider:ModelProviderName.OPENAI,
