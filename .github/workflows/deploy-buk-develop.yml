@@ -1,0 +1,77 @@
+name: Deploy buk-main
+
+on:
+  push:
+    branches:
+      - buk-main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    env:
+      ENV_FILE_KAI_AGENT: ${{ secrets.ENV_FILE_KAI_AGENT }}
+    steps:
+      - name: Deploy repository on target server via SSH
+        env:
+          ENV_FILE_KAI_AGENT: ${{ secrets.ENV_FILE_KAI_AGENT }}
+        uses: appleboy/ssh-action@v0.1.10
+        with:
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          envs: ENV_FILE_KAI_AGENT
+          command_timeout: 200m
+          script: |
+            #!/usr/bin/env bash
+            set -e
+            echo "Connected to the server successfully."
+            echo "Inside login shell."
+            export NVM_DIR="/home/ubuntu/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+            [ -s "$NVM_DIR/bash_completion" ] && . "$NVM_DIR/bash_completion"
+            if command -v nvm >/dev/null 2>&1; then
+              echo "nvm is available."
+            else
+              echo "nvm is not available. Exiting."
+              exit 1
+            fi
+            echo "nvm version: $(nvm --version)"
+            # Check Node.js version before switching
+            echo "Current Node.js version: $(node -v)"
+            echo "Current npm version: $(npm -v)"
+            nvm install 23
+            nvm use 23
+            echo "Switched to the 23 version of Node.js."
+            # Verify Node.js version after switching
+            echo "Updated Node.js version: $(node -v)"
+            echo "Updated npm version: $(npm -v)"
+            npm install -g pnpm@latest-10
+            echo "Installed pnpm"
+            # Check if the repository is already cloned; if not, clone it.
+            if [ ! -d "kai-agent" ]; then
+              echo "Directory 'kai-agent' does not exist. Cloning repository."
+              git clone https://github.com/BUK-protocol/kai-agent kai-agent
+            else
+              echo "Directory 'kai-agent' exists. Skipping clone."
+            fi
+            cd kai-agent/
+            echo "Navigated to kai-agent/ directory."
+            CURRENT_BRANCH=$(git branch --show-current)
+            echo "Current branch: $CURRENT_BRANCH"
+            if [ "$CURRENT_BRANCH" != "buk-main" ]; then
+              echo "Switching to buk-main branch."
+              git checkout buk-main
+            fi
+            # echo "Pulling latest changes."
+            git pull
+            # Create .env file from ENV_FILE_KAI_AGENT
+            echo "Creating .env file from ENV_FILE_KAI_AGENT"
+            echo "$ENV_FILE_KAI_AGENT" > .env
+            echo "Installing dependencies and building the project."
+            pnpm install --no-frozen-lockfile
+            pnpm build
+            echo "Restarting kai-agent service."
+            sudo systemctl restart kai-agent
+            echo "Checking service status."
+            sudo systemctl status kai-agent --no-pager
+            echo "Deployment completed successfully."
