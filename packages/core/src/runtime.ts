@@ -54,6 +54,8 @@ import {
 } from "./types.ts";
 import { stringToUuid } from "./uuid.ts";
 
+const MAX_MEMORY_RECORDS = 200;
+
 /**
  * Represents the runtime environment for an agent, handling message processing,
  * action registration, and interaction with external services like OpenAI and Supabase.
@@ -1439,11 +1441,22 @@ Text: ${attachment.text}
     }
 
     async updateRecentMessageState(state: State): Promise<State> {
-        const conversationLength = this.getConversationLength();
+        const conversationLength = Math.min(this.getConversationLength(), MAX_MEMORY_RECORDS);
+
+        elizaLogger.debug("Updating Recent Message State:", {
+            originalConversationLength: this.getConversationLength(),
+            limitedConversationLength: conversationLength,
+            maxAllowed: MAX_MEMORY_RECORDS
+        });
+
         const recentMessagesData = await this.messageManager.getMemories({
             roomId: state.roomId,
             count: conversationLength,
             unique: false,
+        });
+
+        elizaLogger.debug("Retrieved Messages:", {
+            count: recentMessagesData.length
         });
 
         const recentMessages = formatMessages({
