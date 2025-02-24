@@ -172,6 +172,73 @@ export function createApiRouter(
         }
     });
 
+    // router.get("/agents/:agentId/:roomId/memories", async (req, res) => {
+    //     const { agentId, roomId } = validateUUIDParams(req.params, res) ?? {
+    //         agentId: null,
+    //         roomId: null,
+    //     };
+    //     if (!agentId || !roomId) return;
+
+    //     let runtime = agents.get(agentId);
+
+    //     // if runtime is null, look for runtime with the same name
+    //     if (!runtime) {
+    //         runtime = Array.from(agents.values()).find(
+    //             (a) => a.character.name.toLowerCase() === agentId.toLowerCase()
+    //         );
+    //     }
+
+    //     if (!runtime) {
+    //         res.status(404).send("Agent not found");
+    //         return;
+    //     }
+
+    //     try {
+    //         const memories = await runtime.messageManager.getMemories({
+    //             roomId,
+    //             count:10,
+    //         });
+    //         const response = {
+    //             agentId,
+    //             roomId,
+    //             memories: memories.map((memory) => ({
+    //                 id: memory.id,
+    //                 userId: memory.userId,
+    //                 agentId: memory.agentId,
+    //                 createdAt: memory.createdAt,
+    //                 content: {
+    //                     text: memory.content.text,
+    //                     action: memory.content.action,
+    //                     source: memory.content.source,
+    //                     url: memory.content.url,
+    //                     inReplyTo: memory.content.inReplyTo,
+    //                     attachments: memory.content.attachments?.map(
+    //                         (attachment) => ({
+    //                             id: attachment.id,
+    //                             url: attachment.url,
+    //                             title: attachment.title,
+    //                             source: attachment.source,
+    //                             description: attachment.description,
+    //                             text: attachment.text,
+    //                             contentType: attachment.contentType,
+    //                         })
+    //                     ),
+    //                 },
+    //                 embedding: memory.embedding,
+    //                 roomId: memory.roomId,
+    //                 unique: memory.unique,
+    //                 similarity: memory.similarity,
+    //             })),
+    //         };
+
+    //         res.json(response);
+    //     } catch (error) {
+    //         console.error("Error fetching memories:", error);
+    //         res.status(500).json({ error: "Failed to fetch memories" });
+    //     }
+    // });
+
+
     router.get("/agents/:agentId/:roomId/memories", async (req, res) => {
         const { agentId, roomId } = validateUUIDParams(req.params, res) ?? {
             agentId: null,
@@ -196,7 +263,10 @@ export function createApiRouter(
         try {
             const memories = await runtime.messageManager.getMemories({
                 roomId,
+                count: 50,
+                unique: false
             });
+
             const response = {
                 agentId,
                 roomId,
@@ -223,7 +293,6 @@ export function createApiRouter(
                             })
                         ),
                     },
-                    embedding: memory.embedding,
                     roomId: memory.roomId,
                     unique: memory.unique,
                     similarity: memory.similarity,
@@ -236,7 +305,6 @@ export function createApiRouter(
             res.status(500).json({ error: "Failed to fetch memories" });
         }
     });
-
     router.get("/tee/agents", async (req, res) => {
         try {
             const allAgents = [];

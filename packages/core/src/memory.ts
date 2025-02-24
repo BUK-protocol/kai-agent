@@ -89,7 +89,7 @@ export class MemoryManager implements IMemoryManager {
         roomId,
         count = MAX_MEMORY_RECORDS,
         unique = true,
-        start,
+        start ,
         end,
     }: {
         roomId: UUID;

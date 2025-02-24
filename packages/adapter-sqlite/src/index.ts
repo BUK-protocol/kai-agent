@@ -428,29 +428,28 @@ export class SqliteDatabaseAdapter
 
     async getMemories(params: {
         roomId: UUID;
-        count?: number;
-        unique?: boolean;
+        count: number;
+        unique: boolean;
         tableName: string;
         agentId: UUID;
         start?: number;
         end?: number;
     }): Promise<Memory[]> {
         if (!params.tableName) {
-            throw new Error("tableName is required");
+            params.tableName = "messages"; // Default table name
         }
-        if (!params.roomId) {
-            throw new Error("roomId is required");
-        }
-        let sql = `SELECT * FROM memories WHERE type = ? AND agentId = ? AND roomId = ?`;
 
-        const queryParams = [
+        let sql = `SELECT * FROM memories WHERE type = ? AND agentId = ? AND roomId = ?`;
+        const queryParams: any[] = [
             params.tableName,
             params.agentId,
             params.roomId,
-        ] as any[];
+        ];
 
         if (params.unique) {
-            sql += " AND `unique` = 1";
+            // Correctly handle unique constraint.  Use a subquery.
+            sql = `SELECT * FROM memories WHERE id IN (SELECT id FROM memories WHERE type = ? AND agentId = ? AND roomId = ? GROUP BY content) `;
+            // queryParams for the subquery are the same initial ones.
         }
 
         if (params.start) {
@@ -462,23 +461,18 @@ export class SqliteDatabaseAdapter
             sql += ` AND createdAt <= ?`;
             queryParams.push(params.end);
         }
+        sql += ` ORDER BY createdAt DESC LIMIT ?`;
+        queryParams.push(params.count);
 
-        sql += " ORDER BY createdAt DESC";
+        const stmt = this.db.prepare(sql);
 
-        if (params.count) {
-            sql += " LIMIT ?";
-            queryParams.push(params.count);
-        }
+        const rows = stmt.all(...queryParams) as (Memory & {
+            content: string;
+        })[];
 
-        const memories = this.db.prepare(sql).all(...queryParams) as Memory[];
-
-        return memories.map((memory) => ({
-            ...memory,
-            createdAt:
-                typeof memory.createdAt === "string"
-                    ? Date.parse(memory.createdAt as string)
-                    : memory.createdAt,
-            content: JSON.parse(memory.content as unknown as string),
+        return rows.map((row) => ({
+            ...row,
+            content: JSON.parse(row.content),
         }));
     }
 
