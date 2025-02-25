@@ -87,37 +87,39 @@ export class MemoryManager implements IMemoryManager {
      */
     async getMemories({
         roomId,
-        count = MAX_MEMORY_RECORDS,
+        count,
         unique = true,
-        start ,
+        start,
         end,
+        userId,
     }: {
         roomId: UUID;
         count?: number;
         unique?: boolean;
         start?: number;
         end?: number;
+        userId?: UUID;
     }): Promise<Memory[]> {
         // Ensure we never exceed MAX_MEMORY_RECORDS
-        const limitedCount = Math.min(count, MAX_MEMORY_RECORDS);
 
         elizaLogger.debug("Memory Fetch Request:", {
             requestedCount: count,
-            limitedCount,
             unique,
             roomId,
             start,
-            end
+            end,
+            userId
         });
 
         const memories = await this.runtime.databaseAdapter.getMemories({
             roomId,
-            count: limitedCount,
+            count,
             unique,
             tableName: this.tableName,
             agentId: this.runtime.agentId,
             start,
             end,
+            userId,
         });
 
         elizaLogger.debug("Memory Fetch Result:", {

@@ -905,6 +905,7 @@ export interface IDatabaseAdapter {
         agentId: UUID;
         start?: number;
         end?: number;
+        userId?: UUID;
     }): Promise<Memory[]>;
 
     getMemoryById(id: UUID): Promise<Memory | null>;
@@ -1080,6 +1081,7 @@ export interface IMemoryManager {
         unique?: boolean;
         start?: number;
         end?: number;
+        userId?: UUID;
     }): Promise<Memory[]>;
 
     getCachedEmbeddings(

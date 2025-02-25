@@ -9,6 +9,7 @@ import {
     UUID,
     validateCharacterConfig,
     ServiceType,
+    // IDatabaseAdapter,
 } from "@elizaos/core";
 
 import { TeeLogQuery, TeeLogService } from "@elizaos/plugin-tee-log";
@@ -49,7 +50,8 @@ function validateUUIDParams(
 
 export function createApiRouter(
     agents: Map<string, AgentRuntime>,
-    directClient: DirectClient
+    directClient: DirectClient,
+    // db: IDatabaseAdapter
 ) {
     const router = express.Router();
 
@@ -172,72 +174,6 @@ export function createApiRouter(
         }
     });
 
-    // router.get("/agents/:agentId/:roomId/memories", async (req, res) => {
-    //     const { agentId, roomId } = validateUUIDParams(req.params, res) ?? {
-    //         agentId: null,
-    //         roomId: null,
-    //     };
-    //     if (!agentId || !roomId) return;
-
-    //     let runtime = agents.get(agentId);
-
-    //     // if runtime is null, look for runtime with the same name
-    //     if (!runtime) {
-    //         runtime = Array.from(agents.values()).find(
-    //             (a) => a.character.name.toLowerCase() === agentId.toLowerCase()
-    //         );
-    //     }
-
-    //     if (!runtime) {
-    //         res.status(404).send("Agent not found");
-    //         return;
-    //     }
-
-    //     try {
-    //         const memories = await runtime.messageManager.getMemories({
-    //             roomId,
-    //             count:10,
-    //         });
-    //         const response = {
-    //             agentId,
-    //             roomId,
-    //             memories: memories.map((memory) => ({
-    //                 id: memory.id,
-    //                 userId: memory.userId,
-    //                 agentId: memory.agentId,
-    //                 createdAt: memory.createdAt,
-    //                 content: {
-    //                     text: memory.content.text,
-    //                     action: memory.content.action,
-    //                     source: memory.content.source,
-    //                     url: memory.content.url,
-    //                     inReplyTo: memory.content.inReplyTo,
-    //                     attachments: memory.content.attachments?.map(
-    //                         (attachment) => ({
-    //                             id: attachment.id,
-    //                             url: attachment.url,
-    //                             title: attachment.title,
-    //                             source: attachment.source,
-    //                             description: attachment.description,
-    //                             text: attachment.text,
-    //                             contentType: attachment.contentType,
-    //                         })
-    //                     ),
-    //                 },
-    //                 embedding: memory.embedding,
-    //                 roomId: memory.roomId,
-    //                 unique: memory.unique,
-    //                 similarity: memory.similarity,
-    //             })),
-    //         };
-
-    //         res.json(response);
-    //     } catch (error) {
-    //         console.error("Error fetching memories:", error);
-    //         res.status(500).json({ error: "Failed to fetch memories" });
-    //     }
-    // });
-
 
     router.get("/agents/:agentId/:roomId/memories", async (req, res) => {
         const { agentId, roomId } = validateUUIDParams(req.params, res) ?? {
@@ -305,6 +241,173 @@ export function createApiRouter(
             res.status(500).json({ error: "Failed to fetch memories" });
         }
     });
+
+
+    // router.get("/agents/:agentId/chat-history", async (req, res) => {
+    //     const { agentId} = validateUUIDParams(req.params, res) ?? {
+    //         agentId: null,
+    //     };
+    //     const username = req.query.username as string;
+
+    //     if (!agentId || !username) {
+    //         return res.status(400).json({ error: "Missing required parameters" });
+    //     }
+
+    //     try {
+    //         // First get the user account by username
+    //         if (!db.getAccountByUsername) {
+    //             return res.status(500).json({ error: "Database adapter doesn't support username lookup" });
+    //         }
+
+    //         const account = await db.getAccountByUsername(username as string);
+    //         if (!account) {
+    //             return res.status(404).json({ error: "User not found" });
+    //         }
+
+    //         // Get the rooms for this user
+    //         const rooms = await db.getRoomsForParticipant(account.id);
+    //         if (!rooms || rooms.length === 0) {
+    //             return res.status(404).json({ error: "No chat rooms found" });
+    //         }
+
+    //         // Get the runtime for this agent
+    //         let runtime = agents.get(agentId);
+
+    //         // if runtime is null, look for runtime with the same name (following existing pattern)
+    //         if (!runtime) {
+    //             runtime = Array.from(agents.values()).find(
+    //                 (a) => a.character.name.toLowerCase() === agentId.toLowerCase()
+    //             );
+    //         }
+
+    //         if (!runtime) {
+    //             res.status(404).send("Agent not found");
+    //             return;
+    //         }
+
+    //         // Get memories using the messageManager (following existing pattern)
+    //         const memories = await runtime.messageManager.getMemories({
+    //             roomId: rooms[0],
+    //             userId: account.id,
+    //             count: parseInt(req.query.count as string) || 50,
+    //             unique: false
+    //         });
+
+    //         // Format response using the same structure as other endpoints
+    //         const response = {
+    //             agentId,
+    //             roomId: rooms[0],
+    //             memories: memories.map((memory) => ({
+    //                 id: memory.id,
+    //                 userId: memory.userId,
+    //                 agentId: memory.agentId,
+    //                 createdAt: memory.createdAt,
+    //                 content: {
+    //                     text: memory.content.text,
+    //                     action: memory.content.action,
+    //                     source: memory.content.source,
+    //                     url: memory.content.url,
+    //                     inReplyTo: memory.content.inReplyTo,
+    //                     attachments: memory.content.attachments?.map(
+    //                         (attachment) => ({
+    //                             id: attachment.id,
+    //                             url: attachment.url,
+    //                             title: attachment.title,
+    //                             source: attachment.source,
+    //                             description: attachment.description,
+    //                             text: attachment.text,
+    //                             contentType: attachment.contentType,
+    //                         })
+    //                     ),
+    //                 },
+    //                 roomId: memory.roomId,
+    //                 unique: memory.unique,
+    //                 similarity: memory.similarity,
+    //             })),
+    //         };
+
+    //         res.json(response);
+    //     } catch (error) {
+    //         elizaLogger.error("Error fetching chat history:", error);
+    //         res.status(500).json({ error: "Failed to fetch chat history" });
+    //     }
+    // });
+
+
+    router.get("/agents/:agentId/:roomId/:userId/memories", async (req, res) => {
+        const { agentId, roomId} = validateUUIDParams(req.params, res) ?? {
+            agentId: null,
+            roomId: null,
+        };
+        const userId = validateUuid(req.params.userId);
+
+        const count = parseInt(req.query.count as string) || 10;
+        if (!agentId || !roomId || !userId) return;
+
+        let runtime = agents.get(agentId);
+
+        // if runtime is null, look for runtime with the same name
+        if (!runtime) {
+            runtime = Array.from(agents.values()).find(
+                (a) => a.character.name.toLowerCase() === agentId.toLowerCase()
+            );
+        }
+
+        if (!runtime) {
+            res.status(404).send("Agent not found");
+            return;
+        }
+
+        try {
+            const memories = await runtime.messageManager.getMemories({
+                roomId,
+                unique: false,
+                userId,
+                count
+            });
+
+            const response = {
+                agentId,
+                roomId,
+                memories: memories.map((memory) => ({
+                    id: memory.id,
+                    userId: memory.userId,
+                    agentId: memory.agentId,
+                    createdAt: memory.createdAt,
+                    content: {
+                        text: memory.content.text,
+                        action: memory.content.action,
+                        source: memory.content.source,
+                        url: memory.content.url,
+                        inReplyTo: memory.content.inReplyTo,
+                        attachments: memory.content.attachments?.map(
+                            (attachment) => ({
+                                id: attachment.id,
+                                url: attachment.url,
+                                title: attachment.title,
+                                source: attachment.source,
+                                description: attachment.description,
+                                text: attachment.text,
+                                contentType: attachment.contentType,
+                            })
+                        ),
+                    },
+                    roomId: memory.roomId,
+                    unique: memory.unique,
+                    similarity: memory.similarity,
+                })),
+            };
+
+            res.json(response);
+        } catch (error) {
+            console.error("Error fetching memories:", error);
+            res.status(500).json({ error: "Failed to fetch memories" });
+        }
+    });
+
+
+
+
     router.get("/tee/agents", async (req, res) => {
         try {
             const allAgents = [];

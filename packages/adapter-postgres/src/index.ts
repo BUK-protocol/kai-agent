@@ -580,6 +580,7 @@ export class PostgresDatabaseAdapter
         agentId?: UUID;
         start?: number;
         end?: number;
+        userId?: UUID;
     }): Promise<Memory[]> {
         // Parameter validation
         if (!params.tableName) throw new Error("tableName is required");
@@ -590,6 +591,36 @@ export class PostgresDatabaseAdapter
             let sql = `SELECT * FROM memories WHERE type = $1 AND "roomId" = $2`;
             const values: any[] = [params.tableName, params.roomId];
             let paramCount = 2;
+
+            // Add userId filter if provided
+            if (params.userId) {
+                paramCount++;
+                sql += ` AND "userId" = $${paramCount}`;
+                values.push(params.userId);
+            }
+
+            // Handle unique constraint with a subquery for content-based deduplication
+            if (params.unique) {
+                let uniqueSql = `
+                    SELECT * FROM memories
+                    WHERE id IN (
+                        SELECT DISTINCT ON (content) id
+                        FROM memories
+                        WHERE type = $1 AND "roomId" = $2
+                `;
+
+                // Add userId to subquery if provided
+                if (params.userId) {
+                    uniqueSql += ` AND "userId" = $${paramCount}`;
+                }
+
+                uniqueSql += `
+                        ORDER BY content, "createdAt" DESC
+                    )
+                `;
+
+                sql = uniqueSql;
+            }
 
             // Add time range filters
             if (params.start) {
@@ -604,11 +635,7 @@ export class PostgresDatabaseAdapter
                 values.push(params.end / 1000);
             }
 
-            // Add other filters
-            if (params.unique) {
-                sql += ` AND "unique" = true`;
-            }
-
+            // Add agentId filter if provided
             if (params.agentId) {
                 paramCount++;
                 sql += ` AND "agentId" = $${paramCount}`;
