@@ -33,6 +33,13 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
 
+// Extend the interface to add our method
+declare module "@elizaos/core" {
+    interface IDatabaseAdapter {
+        getAccountByUsername(username: string): Promise<Account | null>;
+    }
+}
+
 export class PostgresDatabaseAdapter
     extends DatabaseAdapter<Pool>
     implements IDatabaseCacheAdapter
@@ -1809,6 +1816,32 @@ export class PostgresDatabaseAdapter
                 params.isShared,
             ]
         );
+    }
+
+    async getAccountByUsername(username: string): Promise<Account | null> {
+        try {
+            const result = await this.query(
+                'SELECT id, name, username, details, email, avatar_url as "avatarUrl" FROM accounts WHERE username = $1',
+                [username]
+            );
+
+            if (result.rows.length === 0) {
+                return null;
+            }
+
+            const account = result.rows[0];
+            return {
+                id: account.id,
+                name: account.name,
+                username: account.username,
+                details: account.details,
+                email: account.email,
+                avatarUrl: account.avatarUrl
+            };
+        } catch (error) {
+            elizaLogger.error(`Error in getAccountByUsername: ${error}`);
+            return null;
+        }
     }
 }
 
