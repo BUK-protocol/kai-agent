@@ -92,6 +92,7 @@ export class MemoryManager implements IMemoryManager {
         start,
         end,
         userId,
+        userIds
     }: {
         roomId: UUID;
         count?: number;
@@ -99,16 +100,16 @@ export class MemoryManager implements IMemoryManager {
         start?: number;
         end?: number;
         userId?: UUID;
+        userIds?: UUID[];
     }): Promise<Memory[]> {
-        // Ensure we never exceed MAX_MEMORY_RECORDS
-
         elizaLogger.debug("Memory Fetch Request:", {
             requestedCount: count,
             unique,
             roomId,
             start,
             end,
-            userId
+            userId,
+            userIds
         });
 
         const memories = await this.runtime.databaseAdapter.getMemories({
@@ -264,3 +265,4 @@ export class MemoryManager implements IMemoryManager {
         );
     }
 }
+

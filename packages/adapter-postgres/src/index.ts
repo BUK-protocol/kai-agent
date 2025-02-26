@@ -588,6 +588,7 @@ export class PostgresDatabaseAdapter
         start?: number;
         end?: number;
         userId?: UUID;
+        userIds?: UUID[];
     }): Promise<Memory[]> {
         // Parameter validation
         if (!params.tableName) throw new Error("tableName is required");
@@ -606,6 +607,14 @@ export class PostgresDatabaseAdapter
                 values.push(params.userId);
             }
 
+            // Add userIds filter if provided (for filtering to specific users)
+            if (params.userIds && params.userIds.length > 0) {
+                const placeholders = params.userIds.map((_, idx) => `$${paramCount + idx + 1}`).join(', ');
+                sql += ` AND "userId" IN (${placeholders})`;
+                values.push(...params.userIds);
+                paramCount += params.userIds.length;
+            }
+
             // Handle unique constraint with a subquery for content-based deduplication
             if (params.unique) {
                 let uniqueSql = `
@@ -619,6 +628,14 @@ export class PostgresDatabaseAdapter
                 // Add userId to subquery if provided
                 if (params.userId) {
                     uniqueSql += ` AND "userId" = $${paramCount}`;
+                }
+
+                // Add userIds filter to subquery if provided
+                if (params.userIds && params.userIds.length > 0) {
+                    const placeholders = params.userIds.map((_, idx) => `$${paramCount + idx + 1}`).join(', ');
+                    uniqueSql += ` AND "userId" IN (${placeholders})`;
+                    values.push(...params.userIds);
+                    paramCount += params.userIds.length;
                 }
 
                 uniqueSql += `
@@ -1821,7 +1838,7 @@ export class PostgresDatabaseAdapter
     async getAccountByUsername(username: string): Promise<Account | null> {
         try {
             const result = await this.query(
-                'SELECT id, name, username, details, email, avatar_url as "avatarUrl" FROM accounts WHERE username = $1',
+                'SELECT id, name, username, details, email FROM accounts WHERE username = $1',
                 [username]
             );
 
@@ -1834,9 +1851,7 @@ export class PostgresDatabaseAdapter
                 id: account.id,
                 name: account.name,
                 username: account.username,
-                details: account.details,
                 email: account.email,
-                avatarUrl: account.avatarUrl
             };
         } catch (error) {
             elizaLogger.error(`Error in getAccountByUsername: ${error}`);

@@ -286,11 +286,25 @@ export function createApiRouter(
             const roomId = rooms[0];
             const count = parseInt(req.query.count as string) || 50;
 
-            const memories = await runtime.messageManager.getMemories({
+            // Get all memories in the room
+            const allMemories = await runtime.messageManager.getMemories({
                 roomId,
-                count,
+                count: count * 2, // Double the count to account for filtering
                 unique: false
             });
+
+            // Filter messages to include only:
+            // 1. Messages from the user to this agent
+            // 2. Messages from the agent
+            const filteredMemories = allMemories.filter(memory =>
+                // User messages to this agent
+                (memory.userId === userId && memory.agentId === agentId) ||
+                // Agent responses (both userId and agentId are the same agent)
+                (memory.userId === agentId && memory.agentId === agentId)
+            );
+
+            // Limit to the requested count
+            const memories = filteredMemories.slice(0, count);
 
             // Format response using the same structure as other endpoints
             const response = {
