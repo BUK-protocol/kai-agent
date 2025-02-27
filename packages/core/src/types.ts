@@ -24,6 +24,9 @@ export interface Content {
     /** UUID of parent message if this is a reply/thread */
     inReplyTo?: UUID;
 
+    /** Username of the intended recipient for agent responses */
+    username?: string;
+
     /** Array of media attachments */
     attachments?: Media[];
 

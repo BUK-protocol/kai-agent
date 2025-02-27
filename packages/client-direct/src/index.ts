@@ -294,6 +294,9 @@ export class DirectClient {
                     return;
                 }
 
+                // Add the username to the response content
+                response.username = req.body.userName || req.body.user || "unknown";
+
                 // save response to memory
                 const responseMessage: Memory = {
                     id: stringToUuid(messageId + "-" + runtime.agentId),

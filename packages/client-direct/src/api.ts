@@ -295,12 +295,15 @@ export function createApiRouter(
 
             // Filter messages to include only:
             // 1. Messages from the user to this agent
-            // 2. Messages from the agent
+            // 2. Messages from the agent where the username property matches or is undefined (for backward compatibility)
             const filteredMemories = allMemories.filter(memory =>
                 // User messages to this agent
                 (memory.userId === userId && memory.agentId === agentId) ||
-                // Agent responses (both userId and agentId are the same agent)
-                (memory.userId === agentId && memory.agentId === agentId)
+                // Agent responses specifically for this user or without a username specified (for backward compatibility)
+                // (memory.userId === agentId && memory.agentId === agentId &&
+                //  (!memory.content.username || memory.content.username === username))
+
+                (memory.userId === agentId && memory.agentId === agentId && memory.content.username === username)
             );
 
             // Limit to the requested count
@@ -322,6 +325,7 @@ export function createApiRouter(
                         source: memory.content.source,
                         url: memory.content.url,
                         inReplyTo: memory.content.inReplyTo,
+                        username: memory.content.username,
                         attachments: memory.content.attachments?.map(
                             (attachment) => ({
                                 id: attachment.id,
