@@ -1128,16 +1128,19 @@ Text: ${attachment.text}
             userA: UUID,
             userB: UUID
         ): Promise<Memory[]> => {
-            // Find all rooms where userA and userB are participants
-            const rooms = await this.databaseAdapter.getRoomsForParticipants([
-                userA,
-                userB,
+            // Get rooms for each user separately
+            const [roomsA, roomsB] = await Promise.all([
+                this.databaseAdapter.getRoomsForParticipant(userA),
+                this.databaseAdapter.getRoomsForParticipant(userB)
             ]);
+
+            // Find common rooms (rooms where both users are participants)
+            const commonRooms = roomsA.filter(room => roomsB.includes(room));
 
             // Check the existing memories in the database
             return this.messageManager.getMemoriesByRoomIds({
                 // filter out the current room id from rooms
-                roomIds: rooms.filter((room) => room !== roomId),
+                roomIds: commonRooms.filter((room) => room !== roomId),
                 limit: 20,
             });
         };

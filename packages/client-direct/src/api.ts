@@ -274,16 +274,38 @@ export function createApiRouter(
                 return res.status(404).json({ error: "User not found" });
             }
 
-            // Get rooms where both the agent and user participate
             const userId = account.id;
-            const rooms = await runtime.databaseAdapter.getRoomsForParticipants([userId, agentId]);
 
-            if (!rooms || rooms.length === 0) {
-                return res.status(404).json({ error: "No chat rooms found for this user and agent" });
+            // Get rooms where the user is a participant
+            const userRooms = await runtime.databaseAdapter.getRoomsForParticipant(userId);
+
+            if (!userRooms || userRooms.length === 0) {
+                return res.status(404).json({ error: "No chat rooms found for this user" });
             }
 
-            // Get the most recent chat history from the first room
-            const roomId = rooms[0];
+            // Find a room where both the user and agent participate, but the room ID is not equal to the agent ID
+            let sharedRoom: UUID | null = null;
+
+            for (const roomId of userRooms) {
+                // Skip rooms that are the agent's "self-room"
+                if (roomId === agentId) {
+                    continue;
+                }
+
+                // Check if the agent is also a participant in this room
+                const participants = await runtime.databaseAdapter.getParticipantsForRoom(roomId);
+                if (participants.includes(agentId)) {
+                    sharedRoom = roomId;
+                    break;
+                }
+            }
+
+            if (!sharedRoom) {
+                return res.status(404).json({ error: "No shared chat room found for this user and agent" });
+            }
+
+            // Get the most recent chat history from the shared room
+            const roomId = sharedRoom;
             const count = parseInt(req.query.count as string) || 50;
 
             // Get all memories in the room
@@ -295,15 +317,13 @@ export function createApiRouter(
 
             // Filter messages to include only:
             // 1. Messages from the user to this agent
-            // 2. Messages from the agent where the username property matches or is undefined (for backward compatibility)
+            // 2. Messages from the agent where the username property matches
             const filteredMemories = allMemories.filter(memory =>
                 // User messages to this agent
                 (memory.userId === userId && memory.agentId === agentId) ||
-                // Agent responses specifically for this user or without a username specified (for backward compatibility)
-                // (memory.userId === agentId && memory.agentId === agentId &&
-                //  (!memory.content.username || memory.content.username === username))
-
-                (memory.userId === agentId && memory.agentId === agentId && memory.content.username === username)
+                // Agent responses specifically for this user
+                (memory.userId === agentId && memory.agentId === agentId &&
+                 memory.content.username === username)
             );
 
             // Limit to the requested count
@@ -347,7 +367,7 @@ export function createApiRouter(
             res.json(response);
         } catch (error) {
             elizaLogger.error("Error fetching chat history:", error);
-            res.status(500).json({ error: "Failed to fetch chat history" });
+            res.status(500).json({ error: "Failed to fetch chat history", details: error.message });
         }
     });
 

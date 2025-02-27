@@ -1371,11 +1371,21 @@ export class PostgresDatabaseAdapter
 
     async getRoomsForParticipants(userIds: UUID[]): Promise<UUID[]> {
         return this.withDatabase(async () => {
+            if (!userIds || userIds.length === 0) {
+                return [];
+            }
+
+            // Create placeholders for each userId
             const placeholders = userIds.map((_, i) => `$${i + 1}`).join(", ");
-            const { rows } = await this.pool.query(
-                `SELECT DISTINCT "roomId" FROM participants WHERE "userId" IN (${placeholders})`,
-                userIds
-            );
+
+            // Build the query with proper parameter placeholders
+            const query = `
+                SELECT DISTINCT "roomId"
+                FROM participants
+                WHERE "userId" IN (${placeholders})
+            `;
+
+            const { rows } = await this.pool.query(query, userIds);
             return rows.map((row) => row.roomId);
         }, "getRoomsForParticipants");
     }
