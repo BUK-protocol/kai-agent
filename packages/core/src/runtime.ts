@@ -54,6 +54,8 @@ import {
 } from "./types.ts";
 import { stringToUuid } from "./uuid.ts";
 
+const MAX_MEMORY_RECORDS = 200;
+
 /**
  * Represents the runtime environment for an agent, handling message processing,
  * action registration, and interaction with external services like OpenAI and Supabase.
@@ -1126,16 +1128,19 @@ Text: ${attachment.text}
             userA: UUID,
             userB: UUID
         ): Promise<Memory[]> => {
-            // Find all rooms where userA and userB are participants
-            const rooms = await this.databaseAdapter.getRoomsForParticipants([
-                userA,
-                userB,
+            // Get rooms for each user separately
+            const [roomsA, roomsB] = await Promise.all([
+                this.databaseAdapter.getRoomsForParticipant(userA),
+                this.databaseAdapter.getRoomsForParticipant(userB)
             ]);
+
+            // Find common rooms (rooms where both users are participants)
+            const commonRooms = roomsA.filter(room => roomsB.includes(room));
 
             // Check the existing memories in the database
             return this.messageManager.getMemoriesByRoomIds({
                 // filter out the current room id from rooms
-                roomIds: rooms.filter((room) => room !== roomId),
+                roomIds: commonRooms.filter((room) => room !== roomId),
                 limit: 20,
             });
         };
@@ -1439,11 +1444,22 @@ Text: ${attachment.text}
     }
 
     async updateRecentMessageState(state: State): Promise<State> {
-        const conversationLength = this.getConversationLength();
+        const conversationLength = Math.min(this.getConversationLength(), MAX_MEMORY_RECORDS);
+
+        elizaLogger.debug("Updating Recent Message State:", {
+            originalConversationLength: this.getConversationLength(),
+            limitedConversationLength: conversationLength,
+            maxAllowed: MAX_MEMORY_RECORDS
+        });
+
         const recentMessagesData = await this.messageManager.getMemories({
             roomId: state.roomId,
             count: conversationLength,
             unique: false,
+        });
+
+        elizaLogger.debug("Retrieved Messages:", {
+            count: recentMessagesData.length
         });
 
         const recentMessages = formatMessages({

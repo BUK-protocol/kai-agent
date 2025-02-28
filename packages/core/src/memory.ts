@@ -7,6 +7,7 @@ import {
     type UUID,
 } from "./types.ts";
 
+const MAX_MEMORY_RECORDS = 200;
 const defaultMatchThreshold = 0.1;
 const defaultMatchCount = 10;
 
@@ -86,18 +87,32 @@ export class MemoryManager implements IMemoryManager {
      */
     async getMemories({
         roomId,
-        count = 10,
+        count,
         unique = true,
         start,
         end,
+        userId,
+        userIds
     }: {
         roomId: UUID;
         count?: number;
         unique?: boolean;
         start?: number;
         end?: number;
+        userId?: UUID;
+        userIds?: UUID[];
     }): Promise<Memory[]> {
-        return await this.runtime.databaseAdapter.getMemories({
+        elizaLogger.debug("Memory Fetch Request:", {
+            requestedCount: count,
+            unique,
+            roomId,
+            start,
+            end,
+            userId,
+            userIds
+        });
+
+        const memories = await this.runtime.databaseAdapter.getMemories({
             roomId,
             count,
             unique,
@@ -105,7 +120,15 @@ export class MemoryManager implements IMemoryManager {
             agentId: this.runtime.agentId,
             start,
             end,
+            userId,
         });
+
+        elizaLogger.debug("Memory Fetch Result:", {
+            fetchedCount: memories.length,
+            maxAllowed: MAX_MEMORY_RECORDS
+        });
+
+        return memories;
     }
 
     async getCachedEmbeddings(content: string): Promise<
@@ -242,3 +265,4 @@ export class MemoryManager implements IMemoryManager {
         );
     }
 }
+

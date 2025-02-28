@@ -24,6 +24,9 @@ export interface Content {
     /** UUID of parent message if this is a reply/thread */
     inReplyTo?: UUID;
 
+    /** Username of the intended recipient for agent responses */
+    username?: string;
+
     /** Array of media attachments */
     attachments?: Media[];
 
@@ -905,6 +908,7 @@ export interface IDatabaseAdapter {
         agentId: UUID;
         start?: number;
         end?: number;
+        userId?: UUID;
     }): Promise<Memory[]>;
 
     getMemoryById(id: UUID): Promise<Memory | null>;
@@ -1080,6 +1084,7 @@ export interface IMemoryManager {
         unique?: boolean;
         start?: number;
         end?: number;
+        userId?: UUID;
     }): Promise<Memory[]>;
 
     getCachedEmbeddings(

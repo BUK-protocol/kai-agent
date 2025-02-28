@@ -33,6 +33,13 @@ import { fileURLToPath } from "url";
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
 
+// Extend the interface to add our method
+declare module "@elizaos/core" {
+    interface IDatabaseAdapter {
+        getAccountByUsername(username: string): Promise<Account | null>;
+    }
+}
+
 export class PostgresDatabaseAdapter
     extends DatabaseAdapter<Pool>
     implements IDatabaseCacheAdapter
@@ -580,6 +587,8 @@ export class PostgresDatabaseAdapter
         agentId?: UUID;
         start?: number;
         end?: number;
+        userId?: UUID;
+        userIds?: UUID[];
     }): Promise<Memory[]> {
         // Parameter validation
         if (!params.tableName) throw new Error("tableName is required");
@@ -590,6 +599,52 @@ export class PostgresDatabaseAdapter
             let sql = `SELECT * FROM memories WHERE type = $1 AND "roomId" = $2`;
             const values: any[] = [params.tableName, params.roomId];
             let paramCount = 2;
+
+            // Add userId filter if provided
+            if (params.userId) {
+                paramCount++;
+                sql += ` AND "userId" = $${paramCount}`;
+                values.push(params.userId);
+            }
+
+            // Add userIds filter if provided (for filtering to specific users)
+            if (params.userIds && params.userIds.length > 0) {
+                const placeholders = params.userIds.map((_, idx) => `$${paramCount + idx + 1}`).join(', ');
+                sql += ` AND "userId" IN (${placeholders})`;
+                values.push(...params.userIds);
+                paramCount += params.userIds.length;
+            }
+
+            // Handle unique constraint with a subquery for content-based deduplication
+            if (params.unique) {
+                let uniqueSql = `
+                    SELECT * FROM memories
+                    WHERE id IN (
+                        SELECT DISTINCT ON (content) id
+                        FROM memories
+                        WHERE type = $1 AND "roomId" = $2
+                `;
+
+                // Add userId to subquery if provided
+                if (params.userId) {
+                    uniqueSql += ` AND "userId" = $${paramCount}`;
+                }
+
+                // Add userIds filter to subquery if provided
+                if (params.userIds && params.userIds.length > 0) {
+                    const placeholders = params.userIds.map((_, idx) => `$${paramCount + idx + 1}`).join(', ');
+                    uniqueSql += ` AND "userId" IN (${placeholders})`;
+                    values.push(...params.userIds);
+                    paramCount += params.userIds.length;
+                }
+
+                uniqueSql += `
+                        ORDER BY content, "createdAt" DESC
+                    )
+                `;
+
+                sql = uniqueSql;
+            }
 
             // Add time range filters
             if (params.start) {
@@ -604,11 +659,7 @@ export class PostgresDatabaseAdapter
                 values.push(params.end / 1000);
             }
 
-            // Add other filters
-            if (params.unique) {
-                sql += ` AND "unique" = true`;
-            }
-
+            // Add agentId filter if provided
             if (params.agentId) {
                 paramCount++;
                 sql += ` AND "agentId" = $${paramCount}`;
@@ -1320,11 +1371,21 @@ export class PostgresDatabaseAdapter
 
     async getRoomsForParticipants(userIds: UUID[]): Promise<UUID[]> {
         return this.withDatabase(async () => {
+            if (!userIds || userIds.length === 0) {
+                return [];
+            }
+
+            // Create placeholders for each userId
             const placeholders = userIds.map((_, i) => `$${i + 1}`).join(", ");
-            const { rows } = await this.pool.query(
-                `SELECT DISTINCT "roomId" FROM participants WHERE "userId" IN (${placeholders})`,
-                userIds
-            );
+
+            // Build the query with proper parameter placeholders
+            const query = `
+                SELECT DISTINCT "roomId"
+                FROM participants
+                WHERE "userId" IN (${placeholders})
+            `;
+
+            const { rows } = await this.pool.query(query, userIds);
             return rows.map((row) => row.roomId);
         }, "getRoomsForParticipants");
     }
@@ -1782,6 +1843,30 @@ export class PostgresDatabaseAdapter
                 params.isShared,
             ]
         );
+    }
+
+    async getAccountByUsername(username: string): Promise<Account | null> {
+        try {
+            const result = await this.query(
+                'SELECT id, name, username, details, email FROM accounts WHERE username = $1',
+                [username]
+            );
+
+            if (result.rows.length === 0) {
+                return null;
+            }
+
+            const account = result.rows[0];
+            return {
+                id: account.id,
+                name: account.name,
+                username: account.username,
+                email: account.email,
+            };
+        } catch (error) {
+            elizaLogger.error(`Error in getAccountByUsername: ${error}`);
+            return null;
+        }
     }
 }
 
