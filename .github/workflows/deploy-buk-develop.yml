@@ -1,9 +1,9 @@
-name: Deploy buk-develop
+name: Deploy backend
 
 on:
   push:
     branches:
-      - buk-develop
+      - backend
 
 jobs:
   deploy:
@@ -58,9 +58,9 @@ jobs:
             echo "Navigated to kai-agent-testenv/ directory."
             CURRENT_BRANCH=$(git branch --show-current)
             echo "Current branch: $CURRENT_BRANCH"
-            if [ "$CURRENT_BRANCH" != "buk-develop" ]; then
-              echo "Switching to buk-develop branch."
-              git checkout buk-develop
+            if [ "$CURRENT_BRANCH" != "backend" ]; then
+              echo "Switching to backend branch."
+              git checkout backend
             fi
             # echo "Pulling latest changes."
             git pull
