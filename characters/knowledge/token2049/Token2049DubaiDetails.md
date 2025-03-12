@@ -6,6 +6,7 @@
 
 **Venue:** MADINAT JUMEIRAH
 
+
 **About Token2049:**
 TOKEN2049 is the leading global conference where the crypto and blockchain industry converges to shape the future. Bringing together top entrepreneurs, investors, institutions, and builders, it serves as a key platform for networking, knowledge-sharing, and industry-defining discussions. With editions in major financial hubs, TOKEN2049 provides a front-row seat to the latest trends, innovations, and opportunities in the digital asset space. Dubai’s edition promises to be a landmark event, gathering 15,000+ leaders and enthusiasts.
 
@@ -87,5 +88,3 @@ TOKEN2049 is the leading global conference where the crypto and blockchain indus
 **Link to Side Events:** [https://docs.google.com/spreadsheets/d/1dz5m9JrPePk0fBl_HD6O8edwYaw-APBOGmcAF38gTUM/edit?gid=0#gid=0](https://docs.google.com/spreadsheets/d/1dz5m9JrPePk0fBl_HD6O8edwYaw-APBOGmcAF38gTUM/edit?gid=0#gid=0)
 
 **Want to host a side event?** Fill out the form to learn more about available space: [https://forms.token2049.com/dubai/hosting](https://forms.token2049.com/dubai/hosting)
-
-**Official Telegram Community:** [https://t.me/token2049official](https://t.me/token2049official)
